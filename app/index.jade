@@ -1,0 +1,18 @@
+- var mobile = false
+- var web = false
+doctype html
+html
+  head
+    title Taihen Games
+    meta(charset='utf-8')
+    meta(http-equiv='Content-Security-Policy',content="default-src 'self' data: 'unsafe-eval';style-src 'self' 'unsafe-inline';media-src *")
+    meta(name='msapplication-tap-highlight',content='no')
+    meta(name='viewport',content='user-scalable=no,initial-scale=1,width=device-width')
+    link(rel='stylesheet',type='text/css',href='css/app.css')
+    if mobile
+      script(type='text/javascript',src='cordova.js')
+    if web
+      script(type='text/javascript').
+        console.log('web version');
+  body
+    div test 123
