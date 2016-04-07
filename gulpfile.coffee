@@ -2,10 +2,12 @@
 
 # REQUIRES ######################################
 
-config = require('./config').config
 changed = require 'gulp-changed'
+child_p = require 'child_process'
+config = require('./config').config
 del = require 'del'
 elecpack = require 'electron-packager'
+fs = require 'fs'
 gcoffee = require 'gulp-coffee'
 gjade = require 'gulp-jade'
 gstylus = require 'gulp-stylus'
@@ -17,10 +19,6 @@ readl = require 'readline'
 srcmap = require 'gulp-sourcemaps'
 through = require 'through2'
 uglify = require 'gulp-uglify'
-
-###
-child_p = require 'child_process'
-###
 
 # GLOBAL VARIABLES ##############################
 
@@ -62,8 +60,7 @@ ask_pack = ->
     out: config.release_path
     version: config.electric.version
     overwrite: true
-    #asar: true
-  #
+    asar: true
   rl = readl.createInterface process.stdin,process.stdout,null
   console.log 'ELECTRON PACKAGE CREATION'
   rl.setPrompt 'target platform (linux,darwin,win32 or all) ?'
@@ -121,15 +118,18 @@ gulp.task 'default', ->
   gutil.log '* clean -> clear the build directory'
   gutil.log '* watch -> for dev purpose'
   gutil.log '* test -> launch the app in desktop mod'
+  gutil.log '* server -> launch http-server for test'
   gutil.log ''
   gutil.log '* mobile_build -> dev build for mobile, no run'
   gutil.log '* mobile_prod -> prod build for mobile, no run'
+  gutil.log '* mobile_clear -> remove cordova directory'
   #
+  gutil.log '* mobile_pack -> ...'
   #
   gutil.log ''
   gutil.log '* web_build -> dev build for web app, no run'
   gutil.log '* web_prod -> prod build for web app, no run'
-  #
+  gutil.log '* web_pack -> create repository in release directory, ready to use'
   gutil.log ''
   gutil.log '* desktop_build -> dev build for desktop, no run'
   gutil.log '* desktop_prod -> prod build for desktop, no run'
@@ -152,7 +152,7 @@ gulp.task 'jade', ->
   gulp
     .src config.src_path.jade
     .pipe changed config.build_path
-    .pipe if not prod then plumber() else gutil.noop()
+    .pipe unless prod then plumber() else gutil.noop()
     .pipe jade_specify()
     .pipe gjade()
     .pipe gulp.dest config.build_path
@@ -161,10 +161,10 @@ gulp.task 'stylus', ->
   gulp
     .src config.src_path.stylus
     .pipe changed config.build_path
-    .pipe if not prod then plumber() else gutil.noop()
-    .pipe if not prod then srcmap.init() else gutil.noop()
+    .pipe unless prod then plumber() else gutil.noop()
+    .pipe unless prod then srcmap.init() else gutil.noop()
     .pipe gstylus compress: true
-    .pipe if not prod then srcmap.write() else gutil.noop()
+    .pipe unless prod then srcmap.write() else gutil.noop()
     .pipe gulp.dest  config.build_path
 
 # TEST TASKS ####################################
@@ -173,28 +173,56 @@ gulp.task 'watch',['clean','parse'], ->
   for pth in config.src_path.list then gulp.watch config.src_path[pth],[pth]
 
 gulp.task 'test', ->
-  #
-  gutil.log 'test task'
-  gutil.log gutil.colors.red 'NOT READY YET !!'
-  #
-  #
+  process.chdir config.build_path
+  child_p.execFileSync 'electron',['.'],stdio: [0,1,2]
+
+gulp.task 'server', ->
+  process.chdir config.build_path
+  child_p.execFileSync 'http-server',[],stdio: [0,1,2]
 
 # ANDROID TASKS #################################
-
-gulp.task 'cordova', ->
-  #
-  #
-  #
-  on
-  #
 
 gulp.task 'mobile', -> mobile.flag = true
 gulp.task 'mobile_build',['clean','mobile','parse','cordova']
 gulp.task 'mobile_prod',['prod','mobile_build']
 
-#
-# TODO : package task
-#
+gulp.task 'mobile_clear', ->
+  del config.mobile.cordova.path+'/**/*'
+  del config.mobile.cordova.path
+
+gulp.task 'mobile_pack',['mobile_prod'], ->
+  #
+  #
+  on
+  #
+
+gulp.task 'cordova',['cordova_rep','cordova_copy']
+
+gulp.task 'cordova_rep', ->
+  try
+    fs.statSync config.mobile.cordova.path
+  catch err
+    child_p.execFileSync 'cordova',config.mobile.cordova.cmd.create,stdio: [0,1,2]
+    process.chdir config.mobile.cordova.path
+    child_p.execFileSync 'cordova',config.mobile.cordova.cmd.platforms,stdio: [0,1,2]
+    del 'www/**/*'
+
+gulp.task 'cordova_config', ->
+  #
+  #gulp
+  #  .src config.mobile.
+  #
+  on
+  #
+
+gulp.task 'cordova_copy', ->
+  #
+  #gulp
+  #  .src config.build_path
+  #  .pipe
+  #
+  on
+  #
 
 # WEB TASKS #####################################
 
@@ -202,11 +230,17 @@ gulp.task 'web', -> web.flag = true
 gulp.task 'web_build',['clean','web','parse']
 gulp.task 'web_prod',['prod','web_build']
 
+gulp.task 'web_pack',['web_prod'], ->
+  gulp
+    .src config.build_path+'/**/*'
+    .pipe gulp.dest config.release_path+'/'+config.web.release_dir
+
 # ELECTRON TASKS ################################
 
 gulp.task 'desktop', -> on
-gulp.task 'desktop_build',['clean','desktop','parse','electrify']
-gulp.task 'desktop_prod',['prod','desktop_build','create_json']
+gulp.task 'desktop_build',['clean','desktop','parse','electrify','create_json']
+gulp.task 'desktop_prod',['prod','desktop_build']
+gulp.task 'desktop_pack',['desktop_prod'], -> ask_pack()
 
 gulp.task 'electrify', ->
   gulp
@@ -224,5 +258,3 @@ gulp.task 'create_json', ->
     .src './package.json'
     .pipe clean_package()
     .pipe gulp.dest config.build_path
-
-gulp.task 'desktop_pack',['desktop_prod'], -> ask_pack()
