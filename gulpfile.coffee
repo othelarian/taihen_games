@@ -20,6 +20,7 @@ runSeq = require 'run-sequence'
 srcmap = require 'gulp-sourcemaps'
 through = require 'through2'
 uglify = require 'gulp-uglify'
+webpack = require 'webpack-stream'
 
 # GLOBAL VARIABLES ##############################
 
@@ -35,6 +36,7 @@ web =
   flag: false
   regexp: new RegExp '(var web = false)'
   replace: 'var web = true'
+wp_watch = false
 
 # SPECIAL PIPES & FUNCTIONS #####################
 
@@ -145,18 +147,20 @@ gulp.task 'default', ->
 gulp.task 'prod', -> prod = true
 gulp.task 'clean', -> del config.build_path+'/**/*'
 gulp.task 'parse', config.src_path.list
+gulp.task 'build', ['parse']
 
-gulp.task 'png', ->
+gulp.task 'scripts', ->
+  if wp_watch then config.webpack.watch = true
   gulp
-    .src config.src_path.png
+    .src config.src_path.scripts
+    .pipe webpack config.webpack
+    .pipe gulp.dest config.build_path+'/scripts'
+
+gulp.task 'static', ->
+  gulp
+    .src config.src_path.static
     .pipe changed config.build_path
     .pipe gulp.dest config.build_path
-
-gulp.task 'copy', ->
-  #
-  gutil.log gutil.colors.red 'NOT READY YET !!'
-  #
-  #
 
 gulp.task 'jade', ->
   gulp
@@ -179,7 +183,8 @@ gulp.task 'stylus', ->
 
 # TEST TASKS ####################################
 
-gulp.task 'watch',['clean','parse'], ->
+gulp.task 'watch',['clean','build'], ->
+  wp_watch = true
   for pth in config.src_path.list then gulp.watch config.src_path[pth],[pth]
 
 gulp.task 'test', ->
@@ -197,7 +202,7 @@ gulp.task 'android', ->
 # ANDROID TASKS #################################
 
 gulp.task 'mobile', -> mobile.flag = true
-gulp.task 'mobile_build', -> runSeq 'clean','mobile','parse','cordova'
+gulp.task 'mobile_build', -> runSeq 'clean','mobile','build','cordova'
 gulp.task 'mobile_prod',['prod','mobile_build']
 gulp.task 'cordova', -> runSeq 'cordova_dir','cordova_config','cordova_copy','cordova_build'
 
@@ -241,7 +246,7 @@ gulp.task 'cordova_build',['cordova_dir'], ->
 # WEB TASKS #####################################
 
 gulp.task 'web', -> web.flag = true
-gulp.task 'web_build',['clean','web','parse']
+gulp.task 'web_build',['clean','web','build']
 gulp.task 'web_prod',['prod','web_build']
 
 gulp.task 'web_pack',['web_prod'], ->
@@ -252,7 +257,7 @@ gulp.task 'web_pack',['web_prod'], ->
 # ELECTRON TASKS ################################
 
 gulp.task 'desktop', -> on
-gulp.task 'desktop_build',['clean','desktop','parse','electrify','create_json']
+gulp.task 'desktop_build',['clean','desktop','build','electrify','create_json']
 gulp.task 'desktop_prod',['prod','desktop_build']
 gulp.task 'desktop_pack',['desktop_prod'], -> ask_pack()
 

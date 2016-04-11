@@ -12,8 +12,14 @@ html
     link(rel='stylesheet',type='text/css',href='css/app.css')
     if mobile
       script(type='text/javascript',src='cordova.js')
+      script(type='text/javascript').
+        var cordova = true;
+
     if web
       script(type='text/javascript').
         console.log('web version');
+
   body
-    div test 123
+    div(id='mainframe')
+    script(type='text/javascript',src='scripts/vendor.js')
+    script(type='text/javascript',src='scripts/app.js')
