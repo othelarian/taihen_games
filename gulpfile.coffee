@@ -77,6 +77,7 @@ ask_pack = ->
         when 'darwin'
           pack_args.platform = 'darwin'
           pack_args.arch = 'x64'
+          pack_args.icon = './desktop/icon.icns'
           pack_lvl = 2
         when 'win32'
           pack_args.platform = 'win32'
@@ -107,6 +108,9 @@ ask_pack = ->
       when 2 then rl.close()
   rl.on 'close', ->
     console.log 'CREATE PACKAGE ...'
+    #
+    console.log pack_args
+    #
     elecpack pack_args,(err,appPath) -> if err then err else 'PACKAGE CREATION SUCCEED'
 
 # DEFAULT TASK ##################################
@@ -141,6 +145,12 @@ gulp.task 'default', ->
 gulp.task 'prod', -> prod = true
 gulp.task 'clean', -> del config.build_path+'/**/*'
 gulp.task 'parse', config.src_path.list
+
+gulp.task 'png', ->
+  gulp
+    .src config.src_path.png
+    .pipe changed config.build_path
+    .pipe gulp.dest config.build_path
 
 gulp.task 'copy', ->
   #

@@ -16,10 +16,7 @@ width = 800
 app.on 'window-all-closed', -> app.quit()
 
 app.on 'ready', ->
-  mainwin = new BrowWin width: width,height: height
+  mainwin = new BrowWin width: width,height: height,icon: 'imgs/logo_32.png'
   mainwin.loadURL 'file://'+__dirname+'/index.html'
   mainwin.setMenuBarVisibility false
   mainwin.setMinimumSize width,height
-  #
-  mainwin.webContents.openDevTools()
-  #

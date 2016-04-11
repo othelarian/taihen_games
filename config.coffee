@@ -4,7 +4,8 @@ exports.config =
   name: 'Taihen Games'
   version: '0.1.0'
   src_path:
-    list: ['jade','stylus']
+    list: ['jade','stylus','png']
+    png: 'app/**/*.png'
     jade: 'app/**/*.jade'
     stylus: 'app/**/*.styl'
   build_path: 'build'
