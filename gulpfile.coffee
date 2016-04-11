@@ -16,6 +16,7 @@ gutil = require 'gulp-util'
 plumber = require 'gulp-plumber'
 process = require 'process'
 readl = require 'readline'
+runSeq = require 'run-sequence'
 srcmap = require 'gulp-sourcemaps'
 through = require 'through2'
 uglify = require 'gulp-uglify'
@@ -119,13 +120,12 @@ gulp.task 'default', ->
   gutil.log '* watch -> for dev purpose'
   gutil.log '* test -> launch the app in desktop mod'
   gutil.log '* server -> launch http-server for test'
+  gutil.log '* android -> deploy on android for test'
   gutil.log ''
   gutil.log '* mobile_build -> dev build for mobile, no run'
   gutil.log '* mobile_prod -> prod build for mobile, no run'
   gutil.log '* mobile_clear -> remove cordova directory'
-  #
   gutil.log '* mobile_pack -> ...'
-  #
   gutil.log ''
   gutil.log '* web_build -> dev build for web app, no run'
   gutil.log '* web_prod -> prod build for web app, no run'
@@ -180,11 +180,16 @@ gulp.task 'server', ->
   process.chdir config.build_path
   child_p.execFileSync 'http-server',[],stdio: [0,1,2]
 
+gulp.task 'android', ->
+  process.chdir config.mobile.cordova.path
+  child_p.execFileSync 'cordova',['run','android'],stdio: [0,1,2]
+
 # ANDROID TASKS #################################
 
 gulp.task 'mobile', -> mobile.flag = true
-gulp.task 'mobile_build',['clean','mobile','parse','cordova']
+gulp.task 'mobile_build', -> runSeq 'clean','mobile','parse','cordova'
 gulp.task 'mobile_prod',['prod','mobile_build']
+gulp.task 'cordova', -> runSeq 'cordova_dir','cordova_config','cordova_copy','cordova_build'
 
 gulp.task 'mobile_clear', ->
   del config.mobile.cordova.path+'/**/*'
@@ -192,13 +197,12 @@ gulp.task 'mobile_clear', ->
 
 gulp.task 'mobile_pack',['mobile_prod'], ->
   #
+  # TODO : aucune utilité dans ce script
   #
   on
   #
 
-gulp.task 'cordova',['cordova_rep','cordova_copy']
-
-gulp.task 'cordova_rep', ->
+gulp.task 'cordova_dir', ->
   try
     fs.statSync config.mobile.cordova.path
   catch err
@@ -207,22 +211,22 @@ gulp.task 'cordova_rep', ->
     child_p.execFileSync 'cordova',config.mobile.cordova.cmd.platforms,stdio: [0,1,2]
     del 'www/**/*'
 
-gulp.task 'cordova_config', ->
-  #
-  #gulp
-  #  .src config.mobile.
-  #
-  on
-  #
+gulp.task 'cordova_config',['cordova_dir'], ->
+  gulp
+    .src config.mobile.cordova.config
+    .pipe gulp.dest config.mobile.cordova.path
 
-gulp.task 'cordova_copy', ->
+gulp.task 'cordova_copy',['cordova_dir'], ->
+  gulp
+    .src config.build_path+'/**/*'
+    .pipe gulp.dest config.mobile.cordova.path+'/www'
+
+gulp.task 'cordova_build',['cordova_dir'], ->
   #
-  #gulp
-  #  .src config.build_path
-  #  .pipe
+  # TODO : add release case
   #
-  on
-  #
+  process.chdir config.mobile.cordova.path
+  child_p.execFileSync 'cordova',config.mobile.cordova.cmd.build,stdio: [0,1,2]
 
 # WEB TASKS #####################################
 

@@ -12,7 +12,7 @@ exports.config =
   electric:
     rootfile: 'main.js'
     src_path: 'desktop'
-    version: '0.36.8' #new -> '0.37.5'
+    version: '0.37.5'
   web:
     release_dir: 'web'
   mobile:
@@ -22,3 +22,4 @@ exports.config =
       cmd:
         create: ['create','cordova']
         platforms: ['platform','add','android']
+        build: ['build','android']
